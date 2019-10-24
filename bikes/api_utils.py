@@ -1,5 +1,8 @@
+import os
 import json
 import urllib.request
+
+import pandas as pd
 
 from weatherbit.api import Api
 from datetime import datetime
@@ -19,7 +22,18 @@ apiLangWB = "&lang=en"
 apiPreWB = "&key="
 apiLatWB = "&lat=53.3494146"
 
-
+current_dir = os.path.dirname(os.path.realpath('__file__'))
+station_file = current_dir + '/bikes/stationData.csv'
+testRequest = {
+    "departure_station": "PORTOBELLO_ROAD",
+    "Year": 2019,
+    "Month": 10,
+    "Day": 26,
+    "Hour": 17,
+    "Minute": 20,
+    "Second": 15,
+    "arrival_station": "GRAND_CANAL_DOCK"
+    }
 
 
 def construct_request_OPW():
@@ -195,3 +209,110 @@ def get_data_WB(ye, mo, da, ho, mi, se):
         "Sea-level Pressure": get_sea_pressure_WB(weather),
         "Wind Speed": get_wind_speed_WB(weather),
         }
+
+
+def get_station_data(station_name):
+    """ Get information about the given station """
+
+    csv = pd.read_csv(station_file)
+    stations = list(csv["Station"])
+    for num, station in enumerate(stations):
+        if csv.loc[num, "Station"] == station_name:
+            data = csv.iloc[[num]]
+
+    if data is None:
+        print("No station of this name found!")
+
+    return data
+
+
+def get_station_neighbours(station_data):
+    """ Gets the closest statiosn to the given station """  
+    
+    return list(list(station_data.values)[0][-3:])
+
+
+def get_station_behaviour(station_data):
+    """ Get the average daily behaviour of given station """
+
+    return list(list(station_data.values)[0][2:-3])
+
+
+def get_station_capacity(station_data):
+    """ Get the average daily behaviour of given station """
+
+    return list(station_data.values)[0][1]
+
+
+def get_station_info(station_name):
+    """ Format station information nicely """
+
+    data = get_station_data(station_name)
+    
+    return {
+        "name": station_name,
+        "capacity": get_station_capacity(data),
+        "behaviour": get_station_behaviour(data),
+        "neighbours": get_station_neighbours(data),
+        }
+
+
+def get_neighbours_info(station_info, prefix="N"):
+    """ Gets the Information about the station's neighbours """
+
+    return {prefix + "_{}".format(num + 1): get_station_info(neighbour)
+            for num, neighbour in enumerate(station_info["neighbours"])}
+
+
+def get_arrival_info(station_name):
+    """ Get the info for all four stations """
+
+    station_info = get_station_info(station_name)
+    stations_info = get_neighbours_info(station_info, prefix="A")
+    stations_info["A_0"] = station_info
+    return stations_info
+
+
+def get_departure_info(station_name):
+    """ Get the info for all four stations """
+
+    station_info = get_station_info(station_name)
+    stations_info = get_neighbours_info(station_info, prefix="D")
+    stations_info["D_0"] = station_info
+    return stations_info
+
+
+def get_all_infos(request):
+    """ Get info for all stations """
+
+    arrival_info = get_arrival_info(request["arrival_station"])
+    departure_info = get_departure_info(request["departure_station"])
+    arrival_info.update(departure_info)
+
+    return arrival_info
+
+
+def get_silly_estimate(station_info, hour, key):
+    """ Build placeholder estimate for station occupancy """
+
+    estimate = station_info["behaviour"][int(hour * 4)]
+    return {key: {
+        "name": station_info["name"], 
+        "estimate": int(estimate),
+        "capacity": station_info["capacity"],
+    }}
+
+
+def get_silly_estimates(request):
+    """ Given a request, build silly estimates of occupancies """
+
+    return_dict = {}
+    hour = request["Hour"]
+    infos = get_all_infos(request)
+    for key in infos.keys():
+        item = infos[key]
+        item_dict = get_silly_estimate(item, hour, key)
+        return_dict.update(item_dict)
+
+    return return_dict
+        
