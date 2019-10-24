@@ -294,8 +294,9 @@ def get_all_infos(request):
 
 def get_silly_estimate(station_info, hour, key):
     """ Build placeholder estimate for station occupancy """
-
+    
     estimate = station_info["behaviour"][int(hour * 4)]
+    
     return {key: {
         "name": station_info["name"], 
         "estimate": int(estimate),
