@@ -1,0 +1,5 @@
+mysql_host:     '127.0.0.1'
+mysql_user:     'root'
+mysql_password: 'password'
+mysql_db:       'bike17'
+mysql_port:     3306
