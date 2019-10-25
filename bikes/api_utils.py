@@ -289,6 +289,24 @@ def get_all_infos(request):
     departure_info = get_departure_info(request["departure_station"])
     arrival_info.update(departure_info)
 
+    year, month, day = request["Year"], request["Month"], request["Day"]
+    hour, minute, second = request["Hour"], request["Minute"], request["Second"]
+    year, month, day = int(year), int(month), int(day)
+    hour, minute, second = int(hour), int(minute), int(second)
+
+    weather = get_data_WB(year, month, day, hour, minute, second)
+
+    for key in arrival_info.keys():
+        arrival_info[key].update(weather)
+        arrival_info[key].update({
+            "Year": year,
+            "Month": month,
+            "Day": day,
+            "Hour": hour,
+            "Minute": minute,
+            "Second": second,
+        })
+        
     return arrival_info
 
 
@@ -304,6 +322,12 @@ def get_silly_estimate(station_info, hour, key):
     }}
 
 
+def get_average_behaviour(request):
+    """ Find the average behaviour of the station """
+
+    return int(request["behaviour"][int(request["Hour"]) * 4])
+
+
 def get_silly_estimates(request):
     """ Given a request, build silly estimates of occupancies """
 
@@ -316,4 +340,56 @@ def get_silly_estimates(request):
         return_dict.update(item_dict)
 
     return return_dict
+
+
+def blank(*args, **kwargs):
+    """ Take arguments, return 0 """
+
+    return 0
+
+
+def to_model_vector(info_dict):
+    """ Given a dict of information, format it into a vector """
+    vector = [
+        info_dict["Temperature"],
+        info_dict["Rainfall"],
+        info_dict["Dew Point Temperature"],
+        info_dict["Humidity"],
+        info_dict["Sea-level Pressure"],
+        info_dict["Wind Speed"],
+        # info_dict["C40"],
+        # info_dict["4C1"],
+        # info_dict["4C2"],
+        # info_dict["4C3"],
+        info_dict["capacity"]
+        ]
+    
+    for i in range(int(len(info_dict["behaviour"]) / 4)): 
+        vector.append(info_dict["behaviour"] * 4)
+
+    return vector
+
+    
+def predict_package(info_dict, predict_fn=blank):
+    """ Given a package of information, predict something """
+
+    if predict_fn == get_average_behaviour:
+        return predict_fn(info_dict)
+    
+    vector = to_model_vector(info_dict)
+    return predict_fn(vector)
+
+
+def predict_packages(info_dicts, predict_fn=blank):
+    """ Given packages of information, predict something """
+
+    return_dict = {}
+
+    for key in info_dicts.keys():
+        return_dict[key] = {   
+            "name": info_dicts[key]["name"], 
+            "estimate": predict_package(info_dicts[key], get_average_behaviour),
+            "capacity": info_dicts[key]["capacity"],
+        }
         
+    return return_dict
