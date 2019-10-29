@@ -4,6 +4,7 @@ from flask import Flask
 
 app = Flask(__name__)
 fun = api_utils.get_data_WB
+# model = api_utils.load_yasser_model()
 
 
 @app.route("/<year>/<month>/<day>/<hour>/<minute>/<second>")
@@ -47,8 +48,12 @@ def silly_predict(dep, arr, year, month, day, hour, minute, second):
         "arrival_station": arr
     }
 
+    print("Attempting to load the Keras model! :O")
+    model = api_utils.load_yasser_model()
+    print(model)
+    print("Model loaded successfully! :D")
     package = api_utils.get_all_infos(request)
-    return api_utils.predict_packages(package)
+    return api_utils.predict_packages(package, model.predict)
 
 
 @app.route("/data/<dep>/<year>/<month>/<day>/<hour>/<minute>/<second>/<arr>/")
