@@ -1,7 +1,9 @@
 import os
 import json
+import keras
 import urllib.request
 
+import numpy as np
 import pandas as pd
 
 from weatherbit.api import Api
@@ -24,12 +26,14 @@ apiLatWB = "&lat=53.3494146"
 
 current_dir = os.path.dirname(os.path.realpath('__file__'))
 station_file = current_dir + '/bikes/stationData.csv'
+model_file = current_dir + '/bikes/model-10.hdf5'
+
 testRequest = {
-    "departure_station": "PORTOBELLO_ROAD",
+    "departure_station": "BENSON_STREET",
     "Year": 2019,
     "Month": 10,
-    "Day": 26,
-    "Hour": 17,
+    "Day": 30,
+    "Hour": 12,
     "Minute": 20,
     "Second": 15,
     "arrival_station": "GRAND_CANAL_DOCK"
@@ -64,7 +68,8 @@ def get_weather(request):
 def to_epoch_time(ye, mo, da, ho, mi, se):
     """ Converts human-readable time to epoch time """
 
-    return datetime(ye, mo, da, ho, mi, se).strftime('%s')
+    # return datetime(ye, mo, da, ho, mi, se).strftime('%s')
+    return datetime(ye, mo, da, ho, mi, se).timestamp()
 
 
 def get_current_epoch():
@@ -211,9 +216,28 @@ def get_data_WB(ye, mo, da, ho, mi, se):
         }
 
 
+def get_data_silly(ye, mo, da, ho, mi, se):
+    """ Get forecasted weather data for Dublin at given time """
+    
+    weather = get_weather(construct_request_WB())
+    weather = find_timestamp_WB(weather, ye, mo, da, ho, mi, se)
+
+    return {
+        "Rainfall": 0,
+        "Temperature": 0.54,
+        "Wet Bulb Temperature": 1,
+        "Dew Point Temperature": 0.65,
+        "Vapour Pressure": 1,
+        "Humidity": 0.76,
+        "Sea-level Pressure": 0.69,
+        "Wind Speed": 0.45,
+        }
+
+
 def get_station_data(station_name):
     """ Get information about the given station """
 
+    data = None
     csv = pd.read_csv(station_file)
     stations = list(csv["Station"])
     for num, station in enumerate(stations):
@@ -221,7 +245,7 @@ def get_station_data(station_name):
             data = csv.iloc[[num]]
 
     if data is None:
-        print("No station of this name found!")
+        print("No station of this name found! ({})".format(station_name))
 
     return data
 
@@ -229,17 +253,17 @@ def get_station_data(station_name):
 def get_station_neighbours(station_data):
     """ Gets the closest statiosn to the given station """  
     
-    return list(list(station_data.values)[0][-3:])
+    return list(list(station_data.values)[0][-7:-4])
 
 
 def get_station_behaviour(station_data):
     """ Get the average daily behaviour of given station """
 
-    return list(list(station_data.values)[0][2:-3])
+    return list(list(station_data.values)[0][2:-7])
 
 
 def get_station_capacity(station_data):
-    """ Get the average daily behaviour of given station """
+    """ Get the maximum capacity of given station """
 
     return list(station_data.values)[0][1]
 
@@ -249,12 +273,15 @@ def get_station_info(station_name):
 
     data = get_station_data(station_name)
     
-    return {
+    return_dict = {
         "name": station_name,
         "capacity": get_station_capacity(data),
         "behaviour": get_station_behaviour(data),
         "neighbours": get_station_neighbours(data),
         }
+    return_dict.update(get_clusters_info(data))
+
+    return return_dict
 
 
 def get_neighbours_info(station_info, prefix="N"):
@@ -262,6 +289,20 @@ def get_neighbours_info(station_info, prefix="N"):
 
     return {prefix + "_{}".format(num + 1): get_station_info(neighbour)
             for num, neighbour in enumerate(station_info["neighbours"])}
+
+
+def get_clusters_info(station_data):
+    """ Get information about membership of clusters """
+
+    return_dict =  {
+        "4C0": list(station_data.values)[0][-4],
+        "4C1": list(station_data.values)[0][-3],
+        "4C2": list(station_data.values)[0][-2],
+        "4C3": list(station_data.values)[0][-1],
+        }
+    print(return_dict)
+
+    return return_dict
 
 
 def get_arrival_info(station_name):
@@ -295,7 +336,8 @@ def get_all_infos(request):
     hour, minute, second = int(hour), int(minute), int(second)
 
     weather = get_data_WB(year, month, day, hour, minute, second)
-
+    weekday = datetime(year, month, day, hour, minute, second).weekday()
+    
     for key in arrival_info.keys():
         arrival_info[key].update(weather)
         arrival_info[key].update({
@@ -305,6 +347,7 @@ def get_all_infos(request):
             "Hour": hour,
             "Minute": minute,
             "Second": second,
+            "Weekday": weekday, 
         })
         
     return arrival_info
@@ -351,21 +394,26 @@ def blank(*args, **kwargs):
 def to_model_vector(info_dict):
     """ Given a dict of information, format it into a vector """
     vector = [
-        info_dict["Temperature"],
         info_dict["Rainfall"],
+        info_dict["Temperature"],
         info_dict["Dew Point Temperature"],
         info_dict["Humidity"],
         info_dict["Sea-level Pressure"],
         info_dict["Wind Speed"],
-        # info_dict["C40"],
-        # info_dict["4C1"],
-        # info_dict["4C2"],
-        # info_dict["4C3"],
-        info_dict["capacity"]
+        info_dict["capacity"],
+        info_dict["Month"],
+        info_dict["Day"],
+        info_dict["Weekday"],
+        info_dict["Hour"],
+        info_dict["Minute"],
+        info_dict["4C0"],
+        info_dict["4C1"],
+        info_dict["4C2"],
+        info_dict["4C3"],
         ]
     
     for i in range(int(len(info_dict["behaviour"]) / 4)): 
-        vector.append(info_dict["behaviour"] * 4)
+        vector.append(info_dict["behaviour"][i * 4])
 
     return vector
 
@@ -377,19 +425,41 @@ def predict_package(info_dict, predict_fn=blank):
         return predict_fn(info_dict)
     
     vector = to_model_vector(info_dict)
-    return predict_fn(vector)
+    vector = np.array([vector])
+    print(vector.shape, vector)
+    result = predict_fn(vector)
+    print(result)
+    return result
+
+
+def load_model(path):
+    """ Load a Keras model into memory """
+
+    return keras.models.load_model(path)
+
+
+def load_yasser_model():
+    """ Load the latest model we have """
+
+    return load_model(model_file)
+    
 
 
 def predict_packages(info_dicts, predict_fn=blank):
     """ Given packages of information, predict something """
 
     return_dict = {}
-
+    
     for key in info_dicts.keys():
+        estimate = predict_package(info_dicts[key], predict_fn)
+        # if np.isnan(estimate):
+        #     "NaN encountered!"
+        #    estimate = 0
+        capacity = info_dicts[key]["capacity"]
         return_dict[key] = {   
             "name": info_dicts[key]["name"], 
-            "estimate": predict_package(info_dicts[key], get_average_behaviour),
-            "capacity": info_dicts[key]["capacity"],
+            "estimate": int(estimate * capacity),
+            "capacity": capacity,
         }
         
     return return_dict
