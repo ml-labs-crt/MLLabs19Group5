@@ -300,7 +300,7 @@ def get_station_info(station_name):
 def get_neighbours_info(station_info, prefix="N"):
     """ Gets the Information about the station's neighbours """
 
-    return {prefix + "_{}".format(num + 1): get_station_info(neighbour)
+    return {prefix + "_{}".format(num + 2): get_station_info(neighbour)
             for num, neighbour in enumerate(station_info["neighbours"])}
 
 
@@ -322,7 +322,7 @@ def get_arrival_info(station_name):
 
     station_info = get_station_info(station_name)
     stations_info = get_neighbours_info(station_info, prefix="A")
-    stations_info["A_0"] = station_info
+    stations_info["A_1"] = station_info
     return stations_info
 
 
@@ -331,7 +331,7 @@ def get_departure_info(station_name):
 
     station_info = get_station_info(station_name)
     stations_info = get_neighbours_info(station_info, prefix="D")
-    stations_info["D_0"] = station_info
+    stations_info["D_1"] = station_info
     return stations_info
 
 
@@ -380,7 +380,7 @@ def get_silly_estimate(station_info, hour, key):
 def get_average_behaviour(request):
     """ Find the average behaviour of the station """
 
-    return int(request["behaviour"][int(request["Hour"]) * 4])
+    return request["behaviour"][int(request["Hour"]) * 4]
 
 
 def get_silly_estimates(request):
