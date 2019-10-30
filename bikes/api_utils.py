@@ -28,11 +28,21 @@ current_dir = os.path.dirname(os.path.realpath('__file__'))
 station_file = current_dir + '/bikes/stationData.csv'
 model_file = current_dir + '/bikes/model-10.hdf5'
 
+max_rain = 13.2
+max_temp = 26.1
+max_wtb = 20.8
+max_dpt = 18.0
+max_vap = 20.6
+max_hum = 100.0
+max_pres = 1036.9
+max_wspd = 40.0
+
+
 testRequest = {
     "departure_station": "BENSON_STREET",
     "Year": 2019,
     "Month": 10,
-    "Day": 30,
+    "Day": 31,
     "Hour": 12,
     "Minute": 20,
     "Second": 15,
@@ -205,14 +215,14 @@ def get_data_WB(ye, mo, da, ho, mi, se):
     weather = find_timestamp_WB(weather, ye, mo, da, ho, mi, se)
 
     return {
-        "Rainfall": get_precipitation_WB(weather),
-        "Temperature": get_temperature_WB(weather),
+        "Rainfall": get_precipitation_WB(weather) / max_rain,
+        "Temperature": get_temperature_WB(weather) / max_temp,
         "Wet Bulb Temperature": 1,
-        "Dew Point Temperature": get_dew_point_temperature(weather),
+        "Dew Point Temperature": get_dew_point_temperature(weather) / max_dpt,
         "Vapour Pressure": 1,
-        "Humidity": get_humidity_WB(weather),
-        "Sea-level Pressure": get_sea_pressure_WB(weather),
-        "Wind Speed": get_wind_speed_WB(weather),
+        "Humidity": get_humidity_WB(weather) / max_hum,
+        "Sea-level Pressure": get_sea_pressure_WB(weather) / max_hum,
+        "Wind Speed": get_wind_speed_WB(weather) / max_wspd,
         }
 
 
@@ -272,15 +282,18 @@ def get_station_info(station_name):
     """ Format station information nicely """
 
     data = get_station_data(station_name)
+
+    capacity = get_station_capacity(data)
+    behaviour = get_station_behaviour(data)
+    behaviour = [item / capacity for item in behaviour]
     
     return_dict = {
         "name": station_name,
-        "capacity": get_station_capacity(data),
-        "behaviour": get_station_behaviour(data),
+        "capacity": capacity,
+        "behaviour":  behaviour,
         "neighbours": get_station_neighbours(data),
         }
     return_dict.update(get_clusters_info(data))
-
     return return_dict
 
 
@@ -300,7 +313,6 @@ def get_clusters_info(station_data):
         "4C2": list(station_data.values)[0][-2],
         "4C3": list(station_data.values)[0][-1],
         }
-    print(return_dict)
 
     return return_dict
 
@@ -388,7 +400,7 @@ def get_silly_estimates(request):
 def blank(*args, **kwargs):
     """ Take arguments, return 0 """
 
-    return 0
+    return 3
 
 
 def to_model_vector(info_dict):
@@ -426,9 +438,7 @@ def predict_package(info_dict, predict_fn=blank):
     
     vector = to_model_vector(info_dict)
     vector = np.array([vector])
-    print(vector.shape, vector)
     result = predict_fn(vector)
-    print(result)
     return result
 
 
@@ -452,9 +462,9 @@ def predict_packages(info_dicts, predict_fn=blank):
     
     for key in info_dicts.keys():
         estimate = predict_package(info_dicts[key], predict_fn)
-        # if np.isnan(estimate):
-        #     "NaN encountered!"
-        #    estimate = 0
+        if np.isnan(estimate):
+            "NaN encountered!"
+            estimate = 0
         capacity = info_dicts[key]["capacity"]
         return_dict[key] = {   
             "name": info_dicts[key]["name"], 
