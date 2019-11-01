@@ -41,8 +41,8 @@ max_wspd = 40.0
 testRequest = {
     "departure_station": "BENSON_STREET",
     "Year": 2019,
-    "Month": 10,
-    "Day": 31,
+    "Month": 11,
+    "Day": 2,
     "Hour": 12,
     "Minute": 20,
     "Second": 15,
@@ -263,13 +263,13 @@ def get_station_data(station_name):
 def get_station_neighbours(station_data):
     """ Gets the closest statiosn to the given station """  
     
-    return list(list(station_data.values)[0][-7:-4])
+    return list(list(station_data.values)[0][-9:-6])
 
 
 def get_station_behaviour(station_data):
     """ Get the average daily behaviour of given station """
 
-    return list(list(station_data.values)[0][2:-7])
+    return list(list(station_data.values)[0][2:-9])
 
 
 def get_station_capacity(station_data):
@@ -294,6 +294,8 @@ def get_station_info(station_name):
         "neighbours": get_station_neighbours(data),
         }
     return_dict.update(get_clusters_info(data))
+    return_dict.update(get_coordinates_info(data))
+
     return return_dict
 
 
@@ -304,14 +306,25 @@ def get_neighbours_info(station_info, prefix="N"):
             for num, neighbour in enumerate(station_info["neighbours"])}
 
 
+def get_coordinates_info(station_data):
+    """ Get information about station coordinates """
+
+    return_dict =  {
+        "latitude": list(station_data.values)[0][-1],
+        "longitude": list(station_data.values)[0][-2],
+        }
+
+    return return_dict
+
+
 def get_clusters_info(station_data):
     """ Get information about membership of clusters """
 
     return_dict =  {
-        "4C0": list(station_data.values)[0][-4],
-        "4C1": list(station_data.values)[0][-3],
-        "4C2": list(station_data.values)[0][-2],
-        "4C3": list(station_data.values)[0][-1],
+        "4C0": list(station_data.values)[0][-6],
+        "4C1": list(station_data.values)[0][-5],
+        "4C2": list(station_data.values)[0][-4],
+        "4C3": list(station_data.values)[0][-3],
         }
 
     return return_dict
@@ -470,6 +483,8 @@ def predict_packages(info_dicts, predict_fn=blank):
             "name": info_dicts[key]["name"], 
             "estimate": int(estimate * capacity),
             "capacity": capacity,
+            "latitude": info_dicts[key]["latitude"],
+            "longitude": info_dicts[key]["longitude"],
         }
         
     return return_dict
