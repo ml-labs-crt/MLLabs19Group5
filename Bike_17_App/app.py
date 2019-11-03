@@ -2,11 +2,15 @@ from flask import Flask, request, render_template, session, flash, redirect, url
 from flask_bootstrap import Bootstrap
 from flaskext.mysql import MySQL
 from flask_session import Session
-from flask_ckeditor import CKEditor
+# from flask_ckeditor import CKEditor
 import yaml
+import csv
+import json
+from bikes import api_utils
+import pandas as pd
 
-import tensorflow as tf
-from keras.models import load_model
+# import tensorflow as tf
+# from keras.models import load_model
 
 # initial global parameters
 mysql = MySQL()
@@ -26,32 +30,18 @@ app.config['MYSQL_DATABASE_DB'] = db['mysql_db']
 app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 
 
-def initModel():
-    global model,graph
-    #load pre-train model
-    model = load_model('./model/mnistCNN.h5')
-    graph = tf.get_default_graph()
+def initbikedata():
+    pass
+    # global model, graph
+    # load pre-train model
+    # model = load_model('./model/mnistCNN.h5')
+    # graph = tf.get_default_graph()
+
 
 
 @app.route('/', methods=['POST', 'GET'])
 def index():
-        # login and show the task list
-    # if "username" in session:
-    #     sql = "SELECT t.LIST_ID, t.LIST_TITLE, t.LIST_STATUS, t.LIST_DUEDATE, u.USER_NAME FROM todolist as t "\
-    #         "LEFT JOIN user as u ON t.LIST_USERID = u.USER_ID WHERE u.USER_ID = '" + \
-    #         session['user_id'] + "'"
-    #     print(sql)
-    #     cnn = mysql.connect()
-    #     cur = cnn.cursor()
-    #     resultValue = cur.execute(sql)
-    #     if resultValue > 0:
-    #         tasklist = cur.fetchall()
-    #         cur.close()
-    #         return render_template("travellist.html", tasklist=tasklist)
-    #     else:
-    #         flash('Create your first travel!')
-    #         return render_template("travellist.html", tasklist="")
-
+    # session['user_id'] = None
     return render_template("index.html")
 
 
@@ -59,131 +49,201 @@ def index():
 def logout():
     # remove teh username from teh session if it is their
     session.pop('username', None)
+    session.pop('user_id', None)
     return redirect(url_for('index'))
 
 
-@app.route('/travellist/<string:category>/', methods=['POST', 'GET'])
-def travellist(category):
-
-    if request.method == "GET":
-        sql = ""
-        # login and show the travel list
-        if category == "all":
-            sql = "SELECT t.LIST_ID, t.LIST_TITLE, t.LIST_STATUS, t.LIST_DUEDATE, u.USER_NAME FROM todolist as t "\
-                "LEFT JOIN user as u ON t.LIST_USERID = u.USER_ID " \
-                "WHERE u.USER_ID = '" + session['user_id'] + "'"
-        else:
-            sql = "SELECT t.LIST_ID, t.LIST_TITLE, t.LIST_STATUS, t.LIST_DUEDATE, u.USER_NAME FROM todolist as t LEFT JOIN user as u " \
-                "ON t.LIST_USERID = u.USER_ID WHERE t.LIST_STATUS = '" + \
-                category + "' AND u.USER_ID = '" + session['user_id'] + "'"
-
-    if request.method == "POST":
-        if category == "search":
-            _tasksearch = request.form['txttasksearch']
-            sql = "SELECT t.LIST_ID, t.LIST_TITLE, t.LIST_STATUS, t.LIST_DUEDATE, u.USER_NAME FROM todolist as t LEFT JOIN user as u " \
-                "ON t.LIST_USERID = u.USER_ID WHERE t.LIST_TITLE = '%" + \
-                _tasksearch + "%' AND u.USER_ID = '" + session['user_id'] + "'"
-
-    print(sql)
-    cnn = mysql.connect()
-    cur = cnn.cursor()
-    resultValue = cur.execute(sql)
-    if resultValue > 0:
-        tasklist = cur.fetchall()
-        cur.close()
-        # return url_for('tasklist')
-        return render_template('travellist.html', tasklist=tasklist)
-    cur.close()
-    return render_template('travellist.html')
-
-
 @app.route('/addtravel', methods=['POST', 'GET'])
-# def addtravel():
-#     conn = mysql.connect()
-#     cur = conn.cursor()
-#     if request.method == 'POST':
-#         _title = request.form['travelTitle']
-#         _duedate = request.form['txtTaskDueDate']
-#         _description = request.form['txtTestDesc']
-#         _comment = request.form['txtComment']
-#         _user_id = session['user_id']
-#         cur.callproc('sp_addnewTask', (_title, _duedate,
-#                                        _description, _comment, _user_id))
-#         returnData = cur.fetchall()
-#         if len(returnData) is 0:
-#             conn.commit()
-#             cur.close()
-#             conn.close()
-#             print("successful")
-#             flash('Create the Task successfully')
-#             return redirect('travellist/todo')
-#     cur.close()
-#     conn.close()
-#     return render_template('addtravel.html')
 def addtravel():
     # conn = mysql.connect()
     # cur = conn.cursor()
+    list_depar = []
+    list_arr = []
+
     if request.method == 'POST':
         _title = request.form['travelTitle']
         _departure = request.form['departure']
-        _dsetination = request.form['destination']
-        _user_id = session['user_id']
+        _destination = request.form['destination']
+        if (session.get('user_id') is not None):
+            if (session['user_id'] != None):
+                _user_id = session['user_id']
         _datetime = request.form['plandaytime']
+        # if(len(_datetime)!=0):
+        _date = _datetime.split('T')[0]
+        _year_list = _date.split('-')
+        _year = _year_list[0]
+        _month = _year_list[1]
+        _day = _year_list[2]
+        _time = _datetime.split('T')[1]
+        _hour = _time.split(':')[0]
+        _min = _time.split(':')[1]
+        _second = 0  # by default
+        # generate input data
+        inputdata = {
+            "departure_station": _departure,
+            "Year": _year,
+            "Month": _month,
+            "Day": _day,
+            "Hour": _hour,
+            "Minute": _min,
+            "Second": 0,
+            "arrival_station": _destination
+        }
+        package = api_utils.get_all_infos(inputdata)
+        dataresult = api_utils.predict_packages(package)
+        itemsorted = sorted(dataresult) #A_1, A_2, A_3...
+        # available depature stations
+        inforlist = {
+            'title': _title,
+            'departure':_departure,
+            'destination':_destination,
+            'plan_time':_datetime
+        }
+        for tmp in itemsorted:
+            dict_depar = dataresult[tmp]
+            if ('A' in tmp):
+                list_depar.append(dict_depar)
+            if ('D' in tmp):
+                doc_data = {
+                    "dock_name": dict_depar['name'],
+                    "dock_esti": dict_depar['estimate'],
+                    "dock_cap": dict_depar['capacity']
+                }
+                list_arr.append(doc_data)
 
-        model.predit()
+        # available docks
+        # df = pd.DataFrame(data=inputdata,index=[0])
+        # model.predit(df)
+    if (len(list_depar) != 0 and len(list_arr) != 0):
+        if (session.get('user_id') is not None):
+            if (session['user_id'] != None):
+                saveplan(inforlist)
+        return render_template('addtravel.html', list_depar=list_depar, list_arr=list_arr, inforlist=inforlist)
+    else:
+        return render_template('addtravel.html')
 
-    return render_template('addtravel.html')
-
-
-@app.route('/updatetask/<string:task_id>', methods=['POST', 'GET'])
-def updatetask(task_id):
-
-    conn = mysql.connect()
-    cur = conn.cursor()
-    # select the spicific task and ready to update
+@app.route('/deletetravel/<string:travel_id>', methods=['POST', 'GET'])
+def deletetask(travel_id):
     if request.method == 'GET':
-        sql = "SELECT LIST_TITLE, LIST_STATUS, LIST_DESCRIPTION, LIST_LOG, LIST_DUEDATE, LIST_ID FROM todolist WHERE LIST_ID = '" + task_id + "'"
-        resultdata = cur.execute(sql)
-        if resultdata > 0:
-            task = cur.fetchall()
+        cnn = mysql.connect()
+        cur = cnn.cursor()
+        args = (session['user_id'], travel_id)
+        cur.callproc('sp_deletetravel', args)
+        travel_result = cur.fetchall()
+        if len(travel_result) is 0:
+            cnn.commit()
             cur.close()
-            return render_template('updatetask.html', task=task)
-    if request.method == 'POST':
-        _duedate = request.form['txtTaskDueDate']
-        _status = request.form['selTaskSelected']
-        # _taskDesc     = request.form['txtTestDesc']
-        _taskComment = request.form['txtComment']
-        cur.callproc('sp_updateTask', (_taskComment,
-                                       _duedate, _status, task_id))
-        returnData = cur.fetchall()
-        if len(returnData) is 0:
-            conn.commit()
-            cur.close()
-            conn.close()
-            print("update task successful")
-            return redirect('/tasklist/' + _status)
+            cnn.close()
+            return redirect('/travellist')
+    return redirect('/travellist')
 
-    return redirect('/')
+@app.route('/gmap/<string:bikestation>', methods=['POST', 'GET'])
+def gmap(bikestation):
+    #read csv file
+    with open('./bikes/stationlocation.csv', newline='') as csvlocaiton:
+        reader = csv.DictReader(csvlocaiton)
+        for row in reader:
+            if(row['Station'] == bikestation):
+                bikestation = [row['Latitude'], row['Longitude'], row['Station'] ]
+                break
+    return render_template('gmap.html',bikestation=bikestation)
 
+# @app.route('/renewtravel/<string:travel_title>/<string:travel_depart>/<string:travel_dest>', methods=['POST', 'GET'])
+# def renewtravel(travel_title, travel_depart, travel_dest):
+#     # conn = mysql.connect()
+#     # cur = conn.cursor()
+#     list_depar = []
+#     list_arr = []
+#
+#     if request.method == 'POST':
+#         _title = request.form['travelTitle']
+#         _departure = request.form['departure']
+#         _destination = request.form['destination']
+#         if (session['user_id'] != None):
+#             _user_id = session['user_id']
+#         _datetime = request.form['plandaytime']
+#         # if(len(_datetime)!=0):
+#         _date = _datetime.split('T')[0]
+#         _year_list = _date.split('-')
+#         _year = _year_list[0]
+#         _month = _year_list[1]
+#         _day = _year_list[2]
+#         _time = _datetime.split('T')[1]
+#         _hour = _time.split(':')[0]
+#         _min = _time.split(':')[1]
+#         _second = 0  # by default
+#         # generate input data
+#         inputdata = {
+#             "departure_station": _departure,
+#             "Year": _year,
+#             "Month": _month,
+#             "Day": _day,
+#             "Hour": _hour,
+#             "Minute": _min,
+#             "Second": 0,
+#             "arrival_station": _destination
+#         }
+#         package = api_utils.get_all_infos(inputdata)
+#         dataresult = api_utils.predict_packages(package)
+#         itemsorted = sorted(dataresult) #A_1, A_2, A_3...
+#         # available depature stations
+#         inforlist = {
+#             'title': _title,
+#             'departure':_departure,
+#             'destination':_destination,
+#             'plan_time':_datetime
+#         }
+#         for tmp in itemsorted:
+#             dict_depar = dataresult[tmp]
+#             if ('A' in tmp):
+#                 list_depar.append(dict_depar)
+#             if ('D' in tmp):
+#                 doc_data = {
+#                     "dock_name": dict_depar['name'],
+#                     "dock_esti": dict_depar['estimate'],
+#                     "dock_cap": dict_depar['capacity']
+#                 }
+#                 list_arr.append(doc_data)
+#
+#         # available docks
+#         # df = pd.DataFrame(data=inputdata,index=[0])
+#         # model.predit(df)
+#     if (len(list_depar) != 0 and len(list_arr) != 0):
+#         if (session['user_id'] != None):
+#             saveplan(inforlist)
+#         return render_template('addtravel.html', list_depar=list_depar, list_arr=list_arr, inforlist=inforlist)
+#     else:
+#         return render_template('addtravel.html')
 
-@app.route('/sharetask/<string:task_id>/<string:task_name>', methods=['POST', 'GET'])
-def sharetask(task_id, task_name):
+def saveplan(inforlist):
     conn = mysql.connect()
-    cur = conn.cursor()
-    if (request.method == 'POST'):
-        _sharedpeople = request.form['sharingToPeople']
-        print(_sharedpeople)
-        cur.callproc('sp_shareTask', (task_id, _sharedpeople))
-        returndata = cur.fetchall()
-        if len(returndata) is 1:
-            conn.commit()
-            cur.close()
-            conn.close()
-            print('share successful')
-            flash('Share successfully')
-            return render_template('sharetask.html')
-    return render_template('sharetask.html', task_id=task_id, task_name=task_name)
+    cursor = conn.cursor()
+    args = (session['user_id'], inforlist['title'], inforlist['departure'],
+            inforlist['destination'], inforlist['plan_time'])
+    cursor.callproc('sp_addtravelplan', args)
+    result = cursor.fetchall()
+    if len(result) is 0:
+        conn.commit()
+        cursor.close()
 
+@app.route('/travellist', methods=['POST','GET'])
+def travellist():
+    if request.method == "GET":
+        if (session.get('user_id') is None):
+            return redirect(url_for('index'))
+        # login and show the travel list
+        # sql = "SELECT LIST_TRAVELTITLE, LIST_DEPARTURE, LIST_DESTINATION, LIST_PLANTIME FROM TRAVELLIST" \
+        #       "WHERE LIST_USERID " + session['user_id']
+        cnn = mysql.connect()
+        cur = cnn.cursor()
+        args = (session['user_id'], session['username'])
+        cur.callproc('sp_travellist', args)
+        travel_result = cur.fetchall()
+        if len(travel_result) > 0:
+            cnn.commit()
+            cur.close()
+            return render_template('travellist.html', travel_result=travel_result)
+    return redirect(url_for('index'))
 
 @app.route('/signin', methods=['POST'])  # login
 def signin():
@@ -208,24 +268,6 @@ def signin():
             return render_template("signup.html")
     return redirect('/')
 
-
-@app.route('/deletetask/<string:task_id>', methods=['POST', 'GET'])
-def deletetask(task_id):
-    conn = mysql.connect()
-    cur = conn.cursor()
-    if request.method == 'GET':
-        sql = "Delete from todolist Where LIST_ID = '" + task_id + "'"
-        cur.execute(sql)
-        returnData = cur.fetchall()
-        if len(returnData) is 0:
-            conn.commit()
-            cur.close()
-            conn.close()
-            # flash('Delete succefully')
-            return redirect('/tasklist/all')
-    return redirect('/')
-
-
 @app.route('/signup', methods=['POST', 'GET'])  # create user
 def signup():
     # read the post value from UI
@@ -248,9 +290,7 @@ def signup():
             return redirect('/')
     return render_template('signup.html')
 
-
 if __name__ == "__main__":
     mysess = Session()
-
     mysess.init_app(app)
     app.run(debug=True, port=5021)

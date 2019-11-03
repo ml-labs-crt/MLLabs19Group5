@@ -52,3 +52,17 @@ $(function () {
 //       $(this).ckeditor();
 //     });
 // });
+
+
+// $(document).ready(function(){
+//         $('.btnlocation').bind('click', function() {
+//             $.getJSON($SCRIPT_ROOT + '/_ajax_user_input',
+//                 {
+//                     user_input: $('#input').val(),
+//                 },
+//                 function() {
+//                 window.open('/gmap', '_blank');
+//             });
+//             return false;
+//         });
+//     });

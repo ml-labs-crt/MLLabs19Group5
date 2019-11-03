@@ -1,171 +1,199 @@
 {% extends "layout.html" %}
 {% block sub_content %}
-<div class="jumbotron" style="width:60%; left:350px;position: relative; background-color:#a7d1f3;">
-    {#background-image:url('../static/images/bikesDublin.png')"#}
-    <form class="form" action="/addtravel" method="POST">
-        <div class="row">
-            <div class="col-sm-4" id="text">&nbsp&nbsp&nbspTravel Title:
-            <input type="input" name="travelTitle" id="travelTitle" required autofocus></div>
-             <div class="col-sm-4" id="text">&nbsp&nbsp&nbspDeparture:
-         <input list="departure" name="departure">
-         <datalist id="departure">
-         </datalist>
+    <div class="jumbotron" style="width:60%; left:350px;position: relative; background-color:#a7d1f3;">
+        {#background-image:url('../static/images/bikesDublin.png')"#}
+        <form class="form" action="/addtravel" method="POST">
+            <div class="row">
+                <div class="col-sm-4" id="text">&nbsp&nbsp&nbspTravel Title:
+                    <input type="input" name="travelTitle" id="travelTitle" required autofocus></div>
+                <div class="col-sm-4" id="text">&nbsp&nbsp&nbspDeparture:
+                    <input list="departure" name="departure">
+                    <datalist id="departure" >
+                    </datalist>
+                </div>
             </div>
-        </div>
-        <div class="row" >
-            <div class="col-sm-4" id="text">&nbsp&nbsp&nbspPlan Time:&nbsp&nbsp
-                <input type="datetime-local" name="plandaytime" id="plandaytime" required autofocus></div>
-             <div class="col-sm-4" id="text">
-                &nbsp Destination:<input list="destination" name="destination">
-             <datalist id="destination">
-             </datalist>
-             </div>
-             <div class="col-sm-4" id="text">
-                 <button type="submit" class="btn btn-primary">Plan Journey</button>
-             </div>
-        </div>
-        <br>
-        <div class="row">
-            <h3>&nbsp&nbsp&nbspResults</h3>
-            <div class="col-sm-10">
-            <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th style="text-align:center">Departure</th>
-                    <th style="text-align:center">Num. available Bikes</th>
-                    <th style="text-align:center">Destination</th>
-                    <th style="text-align:center">Num. available Docks</th>
-                    <th style="text-align:left">Share Infor.</th>
-                </tr>
-            </thead>
-            <tbody id="travellistTable">
-                <td style="text-align:center">DCU</td>
-                <td style="text-align:center"><progress value="20" max="100"></progress> <br>20/100 bikes available
-</td>
-                <td style="text-align:center">UCD</td>
-                <td style="text-align:center"><progress value="10" max="100"></progress><br>5/12 docks available
-                </td>
+            <div class="row">
+                <div class="col-sm-4" id="text">&nbsp&nbsp&nbspPlan Time:&nbsp
+                    <input type="datetime-local" name="plandaytime" id="plandaytime" required autofocus></div>
+                <div class="col-sm-4" id="text">
+                    &nbsp Destination:<input list="destination" name="destination">
+                    <datalist id="destination">
+                    </datalist>
+                </div>
+                <div class="col-sm-4" id="text">
+                    <button type="submit" class="btn btn-primary">Plan Journey</button>
+                </div>
+            </div>
+            <br>
+            {% if inforlist is defined %}
+            <div class="row" id="trip" name="trip">
+                <div class="col-sm-10">
+                    <h4><bold>&nbsp&nbspYour Trip: {{ inforlist['title'] }}: from {{ inforlist['departure'] }} to {{ inforlist['destination'] }} </bold></h4>
+                    <h4><br><bold>&nbsp&nbspPlan time: {{ inforlist['plan_time'] }}</bold></h4>
+                    <table class="table table-hover">
+                        <thead>
+                        <tr>
+                            <th style="text-align:center">Departure</th>
+                            <th style="text-align:center">Num. available Bikes</th>
+                            <th style="text-align:center">Departure Location</th>
+                        </tr>
+                        </thead>
+                        <tbody id="deparlist">
+                        {% for depar in list_depar %}
+                            <tr>
+                                <td style="text-align:center">{{ depar['name'] }}</td>
+                                <td style="text-align:center">
+                                    <progress value={{ depar['estimate'] }} max={{ depar['capacity'] }}></progress>
+                                    <br>{{ depar['estimate'] }}/{{ depar['capacity'] }} bikes available
+                                </td>
+                                <td style="text-align:center">
+                                    <a href="/gmap/{{ depar['name']}}" target='_blank' class="btnlocation">Check Location</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-sm-10">
+                    <table class="table table-hover">
+                        <thead>
+                        <tr>
+                            <th style="text-align:center">Destination</th>
+                            <th style="text-align:center">Num. available Docks</th>
+                            <th style="text-align:center">Destination Location</th>
+                        </tr>
+                        </thead>
+                        <tbody id="arrlist">
+                        {% for arr in list_arr %}
+                            <tr>
+                                <td style="text-align:center">{{ arr['dock_name'] }}</td>
+                                <td style="text-align:center">
+                                    <progress value={{ arr['dock_esti']}} max={{ arr['dock_cap'] }}></progress>
+                                    <br>{{ arr['dock_esti'] }}/{{ arr['dock_cap'] }} Docks available
+                                </td>
+                            <td style="text-align:center">
+                                    <a href="/gmap/{{ arr['dock_name'] }}"  target='_blank' class="btnlocation">Check Location</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+        </form>
 
-                <td style="text-align:left">
-                    <a href="" class="btn btn-link">Share Travel &laquo;</a>
-                </td>
-            </tbody>
-        </table>
-</div>
-        </div>
-    </form>
-
-<script type="text/javascript">
-  var bikestations = new Array();
-  bikestations = ['BARROW_STREET',
- 'BENSON_STREET',
- 'BLACKHALL_PLACE',
- 'BLESSINGTON_STREET',
- 'BOLTON_STREET',
- 'BROOKFIELD_ROAD',
- 'CATHAL_BRUGHA_STREET',
- 'CHARLEMONT_PLACE',
- 'CHATHAM_STREET',
- 'CHRISTCHURCH_PLACE',
- 'CITY_QUAY',
- 'CLARENDON_ROW',
- 'CLONMEL_STREET',
- 'COLLINS_BARRACKS_MUSEUM',
- 'CONVENTION_CENTRE',
- 'CUSTOM_HOUSE',
- 'CUSTOM_HOUSE_QUAY',
- 'DAME_STREET',
- 'DENMARK_STREET_GREAT',
- 'DEVERELL_PLACE',
- 'EARLSFORT_TERRACE',
- 'ECCLES_STREET',
- 'ECCLES_STREET_EAST',
- 'EMMET_ROAD',
- 'EXCHEQUER_STREET',
- 'EXCISE_WALK',
- 'FENIAN_STREET',
- 'FITZWILLIAM_SQUARE_EAST',
- 'FITZWILLIAM_SQUARE_WEST',
- 'FOWNES_STREET_UPPER',
- 'FRANCIS_STREET',
- 'FREDERICK_STREET_SOUTH',
- 'GEORGES_QUAY',
- 'GOLDEN_LANE',
- 'GRAND_CANAL_DOCK',
- 'GRANTHAM_STREET',
- 'GRATTAN_STREET',
- 'GREEK_STREET',
- 'GUILD_STREET',
- 'HANOVER_QUAY',
- 'HARCOURT_TERRACE',
- 'HARDWICKE_PLACE',
- 'HARDWICKE_STREET',
- 'HATCH_STREET',
- 'HERBERT_PLACE',
- 'HERBERT_STREET',
- 'HEUSTON_BRIDGE_(NORTH)',
- 'HEUSTON_BRIDGE_(SOUTH)',
- 'HEUSTON_STATION_(CAR_PARK)',
- 'HEUSTON_STATION_(CENTRAL)',
- 'HIGH_STREET',
- 'JAMES_STREET',
- 'JAMES_STREET_EAST',
- 'JERVIS_STREET',
- 'JOHN_STREET_WEST',
- 'KEVIN_STREET',
- 'KILMAINHAM_GAOL',
- 'KILMAINHAM_LANE',
- 'KING_STREET_NORTH',
- 'LEINSTER_STREET_SOUTH',
- 'LIME_STREET',
- 'MARKET_STREET_SOUTH',
- 'MATER_HOSPITAL',
- 'MERRION_SQUARE_EAST',
- 'MERRION_SQUARE_WEST',
- 'MOLESWORTH_STREET',
- 'MOUNTJOY_SQUARE_WEST',
- 'MOUNT_BROWN',
- 'MOUNT_STREET_LOWER',
- 'NEWMAN_HOUSE',
- 'NEW_CENTRAL_BANK',
- 'NORTH_CIRCULAR_ROAD',
- 'OLIVER_BOND_STREET',
- 'ORMOND_QUAY_UPPER',
- 'PARKGATE_STREET',
- 'PARNELL_SQUARE_NORTH',
- 'PARNELL_STREET',
- 'PEARSE_STREET',
- 'PORTOBELLO_HARBOUR',
- 'PORTOBELLO_ROAD',
- "PRINCES_STREET_/_O'CONNELL_STREET",
- 'ROTHE_ABBEY',
- 'ROYAL_HOSPITAL',
- 'SANDWITH_STREET',
- "SIR_PATRICK_DUN'S",
- 'SMITHFIELD',
- 'SMITHFIELD_NORTH',
- 'SOUTH_DOCK_ROAD',
- 'ST._JAMES_HOSPITAL_(CENTRAL)',
- "ST._STEPHEN'S_GREEN_EAST",
- "ST._STEPHEN'S_GREEN_SOUTH",
- 'STRAND_STREET_GREAT',
- 'ST_JAMES_HOSPITAL_(LUAS)',
- 'TALBOT_STREET',
- 'THE_POINT',
- 'TOWNSEND_STREET',
- 'UPPER_SHERRARD_STREET',
- 'WESTERN_WAY',
- 'WILTON_TERRACE',
- 'WOLFE_TONE_STREET',
- 'YORK_STREET_EAST',
- 'YORK_STREET_WEST']
-  var options = '';
-  for(var i = 0; i < bikestations.length; i++)
-    options += '<option value="'+bikestations[i]+'" />';
-  document.getElementById('destination').innerHTML = options;
-  document.getElementById('departure').innerHTML = options;
-</script>
-</div>
+        <script type="text/javascript">
+            var bikestations = new Array();
+            bikestations = ['BARROW_STREET',
+                'BENSON_STREET',
+                'BLACKHALL_PLACE',
+                'BLESSINGTON_STREET',
+                'BOLTON_STREET',
+                'BROOKFIELD_ROAD',
+                'CATHAL_BRUGHA_STREET',
+                'CHARLEMONT_PLACE',
+                'CHATHAM_STREET',
+                'CHRISTCHURCH_PLACE',
+                'CITY_QUAY',
+                'CLARENDON_ROW',
+                'CLONMEL_STREET',
+                'COLLINS_BARRACKS_MUSEUM',
+                'CONVENTION_CENTRE',
+                'CUSTOM_HOUSE',
+                'CUSTOM_HOUSE_QUAY',
+                'DAME_STREET',
+                'DENMARK_STREET_GREAT',
+                'DEVERELL_PLACE',
+                'EARLSFORT_TERRACE',
+                'ECCLES_STREET',
+                'ECCLES_STREET_EAST',
+                'EMMET_ROAD',
+                'EXCHEQUER_STREET',
+                'EXCISE_WALK',
+                'FENIAN_STREET',
+                'FITZWILLIAM_SQUARE_EAST',
+                'FITZWILLIAM_SQUARE_WEST',
+                'FOWNES_STREET_UPPER',
+                'FRANCIS_STREET',
+                'FREDERICK_STREET_SOUTH',
+                'GEORGES_QUAY',
+                'GOLDEN_LANE',
+                'GRAND_CANAL_DOCK',
+                'GRANTHAM_STREET',
+                'GRATTAN_STREET',
+                'GREEK_STREET',
+                'GUILD_STREET',
+                'HANOVER_QUAY',
+                'HARCOURT_TERRACE',
+                'HARDWICKE_PLACE',
+                'HARDWICKE_STREET',
+                'HATCH_STREET',
+                'HERBERT_PLACE',
+                'HERBERT_STREET',
+                'HEUSTON_BRIDGE_(NORTH)',
+                'HEUSTON_BRIDGE_(SOUTH)',
+                'HEUSTON_STATION_(CAR_PARK)',
+                'HEUSTON_STATION_(CENTRAL)',
+                'HIGH_STREET',
+                'JAMES_STREET',
+                'JAMES_STREET_EAST',
+                'JERVIS_STREET',
+                'JOHN_STREET_WEST',
+                'KEVIN_STREET',
+                'KILMAINHAM_GAOL',
+                'KILMAINHAM_LANE',
+                'KING_STREET_NORTH',
+                'LEINSTER_STREET_SOUTH',
+                'LIME_STREET',
+                'MARKET_STREET_SOUTH',
+                'MATER_HOSPITAL',
+                'MERRION_SQUARE_EAST',
+                'MERRION_SQUARE_WEST',
+                'MOLESWORTH_STREET',
+                'MOUNTJOY_SQUARE_WEST',
+                'MOUNT_BROWN',
+                'MOUNT_STREET_LOWER',
+                'NEWMAN_HOUSE',
+                'NEW_CENTRAL_BANK',
+                'NORTH_CIRCULAR_ROAD',
+                'OLIVER_BOND_STREET',
+                'ORMOND_QUAY_UPPER',
+                'PARKGATE_STREET',
+                'PARNELL_SQUARE_NORTH',
+                'PARNELL_STREET',
+                'PEARSE_STREET',
+                'PORTOBELLO_HARBOUR',
+                'PORTOBELLO_ROAD',
+                "PRINCES_STREET_/_O'CONNELL_STREET",
+                'ROTHE_ABBEY',
+                'ROYAL_HOSPITAL',
+                'SANDWITH_STREET',
+                "SIR_PATRICK_DUN'S",
+                'SMITHFIELD',
+                'SMITHFIELD_NORTH',
+                'SOUTH_DOCK_ROAD',
+                'ST._JAMES_HOSPITAL_(CENTRAL)',
+                "ST._STEPHEN'S_GREEN_EAST",
+                "ST._STEPHEN'S_GREEN_SOUTH",
+                'STRAND_STREET_GREAT',
+                'ST_JAMES_HOSPITAL_(LUAS)',
+                'TALBOT_STREET',
+                'THE_POINT',
+                'TOWNSEND_STREET',
+                'UPPER_SHERRARD_STREET',
+                'WESTERN_WAY',
+                'WILTON_TERRACE',
+                'WOLFE_TONE_STREET',
+                'YORK_STREET_EAST',
+                'YORK_STREET_WEST']
+            var options = '';
+            for (var i = 0; i < bikestations.length; i++)
+                options += '<option value="' + bikestations[i] + '" />';
+            document.getElementById('destination').innerHTML = options;
+            document.getElementById('departure').innerHTML = options;
+        </script>
+    </div>
 {% endblock %}
 
 
