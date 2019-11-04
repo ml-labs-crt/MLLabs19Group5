@@ -26,6 +26,7 @@ apiLatWB = "&lat=53.3494146"
 
 current_dir = os.path.dirname(os.path.realpath('__file__'))
 station_file = current_dir + '/bikes/stationData.csv'
+time_ile = current_dir + 'bikes/timeTravel.csv'
 model_file = current_dir + '/bikes/model-10.hdf5'
 
 max_rain = 13.2
@@ -481,7 +482,8 @@ def predict_packages(info_dicts, predict_fn=blank):
         capacity = info_dicts[key]["capacity"]
         return_dict[key] = {   
             "name": info_dicts[key]["name"], 
-            "estimate": int(estimate * capacity),
+            # "estimate": int(estimate * capacity),
+            "estimate": int(estimate),
             "capacity": capacity,
             "latitude": info_dicts[key]["latitude"],
             "longitude": info_dicts[key]["longitude"],
