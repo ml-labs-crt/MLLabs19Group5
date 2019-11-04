@@ -6,8 +6,7 @@ import urllib.request
 import numpy as np
 import pandas as pd
 
-# from weatherbit.api import Api
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 apiKeyOPW = "ae0b8892c1c157c7a34956cb20307db7"
@@ -26,7 +25,7 @@ apiLatWB = "&lat=53.3494146"
 
 current_dir = os.path.dirname(os.path.realpath('__file__'))
 station_file = current_dir + '/bikes/stationData.csv'
-time_file = current_dir + 'bikes/timeTravel.csv'
+time_file = current_dir + '/bikes/timeTravel.csv'
 model_file = current_dir + '/bikes/model-10.hdf5'
 
 max_rain = 13.2
@@ -43,7 +42,7 @@ testRequest = {
     "departure_station": "BENSON_STREET",
     "Year": 2019,
     "Month": 11,
-    "Day": 2,
+    "Day": 6,
     "Hour": 12,
     "Minute": 20,
     "Second": 15,
@@ -81,6 +80,13 @@ def to_epoch_time(ye, mo, da, ho, mi, se):
 
     # return datetime(ye, mo, da, ho, mi, se).strftime('%s')
     return datetime(ye, mo, da, ho, mi, se).timestamp()
+
+
+def update_time(ye, mo, da, ho, mi, se, update_minutes):
+    """ Push the given time forward by these minutes """
+
+    up = datetime(ye, mo, da, ho, mi, se) + timedelta(minutes=update_minutes)
+    return (up.year, up.month, up.day, up.hour, up.minute, up.second)
 
 
 def get_current_epoch():
@@ -365,18 +371,46 @@ def get_all_infos(request):
     weekday = datetime(year, month, day, hour, minute, second).weekday()
     
     for key in arrival_info.keys():
-        arrival_info[key].update(weather)
-        arrival_info[key].update({
-            "Year": year,
-            "Month": month,
-            "Day": day,
-            "Hour": hour,
-            "Minute": minute,
-            "Second": second,
-            "Weekday": weekday, 
-        })
+        if key in ["A_2", "A_3", "A_4"]:
+            print("Time Delta!")
+            station_a = arrival_info["A_1"]["name"]
+            station_b = arrival_info[key]["name"]
+            up = get_time_travel(station_a, station_b) 
+            uye, umo, uda, uho, umi, use = update_time(year, month, day, hour, minute, second, up)
+            uweather = get_data_WB(uye, umo, uda, uho, umi, use)
+            arrival_info[key].update(weather)
+            arrival_info[key].update({
+                "Year": uye,
+                "Month": umo,
+                "Day": uda,
+                "Hour": uho,
+                "Minute": umi,
+                "Second": use,
+                "Weekday": weekday, 
+            })
+        else:    
+            arrival_info[key].update(weather)
+            arrival_info[key].update({
+                "Year": year,
+                "Month": month,
+                "Day": day,
+                "Hour": hour,
+                "Minute": minute,
+                "Second": second,
+                "Weekday": weekday, 
+            })
         
     return arrival_info
+
+
+def get_time_travel(station_a, station_b):
+    """ Get the time it takes to travel from one station to the other """
+
+    df = pd.read_csv(time_file)
+    
+    station_a, station_b = station_a.replace("_", " "), station_b.replace("_", " ")
+    index = list(df["Unnamed: 0"]).index(station_a) + 1
+    return df.loc[[index], [station_b]].values[0,0]
 
 
 def get_silly_estimate(station_info, hour, key):

@@ -1,44 +1,44 @@
 {% extends "layout.html" %}
 {% block sub_content %}
-{#<div id="panel">#}
-<div class="jumbotron" style="width:60%; left:350px;position: relative; background-color:#a7d1f3;">
-    <div class="container">
-        &nbsp&nbsp&nbsp<h4>Search your travels:</h4>
-       &nbsp&nbsp&nbsp<input id="travelsearch" class="travelsearch" type="text" class="form-control" style="width: 20%;" placeholder="Search...">
+    {#<div id="panel">#}
+    <div class="jumbotron" style="width:60%; left:350px;position: relative; background-color:#a7d1f3;">
+        <div class="container">
+            <div class="col-sm-5" id="text">
+                Search Your Histroy Travels:
+           <input id="travelsearch" class="travelsearch" type="text" class="form-control"
+                                      style="width: 70%;" placeholder="Search...">
+            </div>
+        <br>
+            <form action="/travellist/" method="GET">
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <!-- <th style="text-align:right">
+                            <input type="checkbox" id="selectall" /> Select All
+                        </th> -->
+                        <th style="text-align:center">Travel Title</th>
+                        <th style="text-align:center">Travel Departure</th>
+                        <th style="text-align:center">Travel Destination</th>
+                        <th style="text-align:center">Travel PlanTime</th>
+                        <th style="text-align:center">More Option</th>
+                    </tr>
+                    </thead>
+                    <tbody id="travellistTable">
+                    {% for travel in travel_result %}
+                        <!-- <td style="text-align:right"> <input type="checkbox" name="check" /></td> -->
+                        <td style="text-align:center">{{ travel[0] }}</td>
+                        <td style="text-align:center">{{ travel[1] }}</td>
+                        <td style="text-align:center">{{ travel[2] }}</td>
+                        <td style="text-align:center">{{ travel[3] }}</td>
+                        <td style="text-align:center">
+                            <a href="/deletetravel/{{ travel[4] }}" class="btn">Delete Travel</a>
+                        </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </form>
+        </div>
     </div>
-    <form action="/travellist/" method="GET">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <!-- <th style="text-align:right">
-                        <input type="checkbox" id="selectall" /> Select All
-                    </th> -->
-                    <th style="text-align:center">Travel Title</th>
-                    <th style="text-align:center">Travel Departure</th>
-                    <th style="text-align:center">Travel Destination</th>
-                    <th style="text-align:center">Travel PlanTime</th>
-{#                    <th style="text-align:center">Travel Duedate</th>#}
-{#                    <th style="text-align:center">Task Owner</th>#}
-                    <th style="text-align:center">More Option</th>
-{#                    <th style="text-align:left">Share Task</th>#}
-                </tr>
-            </thead>
-            <tbody id="travellistTable">
-                {% for travel in travel_result %}
-                <!-- <td style="text-align:right"> <input type="checkbox" name="check" /></td> -->
-                <td style="text-align:center">{{travel[0]}}</td>
-                <td style="text-align:center">{{travel[1]}}</td>
-                <td style="text-align:center">{{travel[2]}}</td>
-                <td style="text-align:center">{{travel[3]}}</td>
-                <td style="text-align:center">
-                    <a href="/deletetravel/{{travel[4]}}" class="btn">Delete Travel</a>
-                </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </form>
-</div>
-</div>
-<!-- </div> -->
+    <!-- </div> -->
 {% endblock %}
