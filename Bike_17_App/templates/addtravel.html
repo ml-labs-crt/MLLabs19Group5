@@ -8,7 +8,7 @@
                     <input type="input" name="travelTitle" id="travelTitle" required autofocus></div>
                 <div class="col-sm-4" id="text">&nbsp&nbsp&nbspDeparture:
                     <input list="departure" name="departure">
-                    <datalist id="departure" >
+                    <datalist id="departure">
                     </datalist>
                 </div>
             </div>
@@ -26,61 +26,86 @@
             </div>
             <br>
             {% if inforlist is defined %}
-            <div class="row" id="trip" name="trip">
-                <div class="col-sm-10">
-                    <h4><bold>&nbsp&nbspYour Trip: {{ inforlist['title'] }}: from {{ inforlist['departure'] }} to {{ inforlist['destination'] }} </bold></h4>
-                    <h4><br><bold>&nbsp&nbspPlan time: {{ inforlist['plan_time'] }}</bold></h4>
-                    <table class="table table-hover">
-                        <thead>
-                        <tr>
-                            <th style="text-align:center">Departure</th>
-                            <th style="text-align:center">Num. available Bikes</th>
-                            <th style="text-align:center">Departure Location</th>
-                        </tr>
-                        </thead>
-                        <tbody id="deparlist">
-                        {% for depar in list_depar %}
+                <div class="row" id="trip" name="trip">
+                    <div class="col-sm-10">
+                        <h4>
+                            <ul>
+                                <li>
+                                    &nbsp&nbspYour Trip: {{ inforlist['title'] }}
+                                </li>
+                                <li>
+                                    &nbsp&nbspFrom {{ inforlist['departure'] }}
+                                    to {{ inforlist['destination'] }}
+                                </li>
+                                <li>
+                                    &nbsp&nbspPlan time: {{ inforlist['plan_time'] }}
+                                </li>
+                            </ul>
+                        </h4>
+
+                        {#                        <div class="list-group list-group-flush" style="background-color: transparent">#}
+                        {#                            <a href="#" class="list-group-item">&nbsp&nbspYour#}
+                        {#                                Trip: {{ inforlist['title'] }}</a>#}
+                        {#                            <a href="#"#}
+                        {#                               class="list-group-item list-group-item-action">&nbsp&nbspFrom {{ inforlist['departure'] }}#}
+                        {#                                to {{ inforlist['destination'] }} </a>#}
+                        {#                            <a href="#"#}
+                        {#                               class="list-group-item list-group-item-action">&nbsp&nbspPlan#}
+                        {#                                time: {{ inforlist['plan_time'] }}</a>#}
+                        {#                        </div>#}
+                        <table class="table table-hover">
+                            <thead>
                             <tr>
-                                <td style="text-align:center">{{ depar['name'] }}</td>
-                                <td style="text-align:center">
-                                    <progress value={{ depar['estimate'] }} max={{ depar['capacity'] }}></progress>
-                                    <br>{{ depar['estimate'] }}/{{ depar['capacity'] }} bikes available
-                                </td>
-                                <td style="text-align:center">
-                                    <a href="/gmap/{{ depar['name']}}" target='_blank' class="btnlocation">Check Location</a>
-                                </td>
+                                <th style="text-align:center">Departure</th>
+                                <th style="text-align:center">Num. available Bikes</th>
+                                <th style="text-align:center">Departure Location</th>
                             </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <div class="col-sm-10">
-                    <table class="table table-hover">
-                        <thead>
-                        <tr>
-                            <th style="text-align:center">Destination</th>
-                            <th style="text-align:center">Num. available Docks</th>
-                            <th style="text-align:center">Destination Location</th>
-                        </tr>
-                        </thead>
-                        <tbody id="arrlist">
-                        {% for arr in list_arr %}
+                            </thead>
+                            <tbody id="deparlist">
+                            {% for depar in list_depar %}
+                                <tr>
+                                    <td style="text-align:center">{{ depar['name'] }}</td>
+                                    <td style="text-align:center">
+                                        <progress value={{ depar['estimate'] }} max={{ depar['capacity'] }}></progress>
+                                        <br>{{ depar['estimate'] }}/{{ depar['capacity'] }} bikes available
+                                    </td>
+                                    <td style="text-align:center">
+                                        <a href="/gmap/{{ depar['name'] }}" target='_blank' class="btnlocation">Check
+                                            Location</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-sm-10">
+                        <table class="table table-hover">
+                            <thead>
                             <tr>
-                                <td style="text-align:center">{{ arr['dock_name'] }}</td>
-                                <td style="text-align:center">
-                                    <progress value={{ arr['dock_esti']}} max={{ arr['dock_cap'] }}></progress>
-                                    <br>{{ arr['dock_esti'] }}/{{ arr['dock_cap'] }} Docks available
-                                </td>
-                            <td style="text-align:center">
-                                    <a href="/gmap/{{ arr['dock_name'] }}"  target='_blank' class="btnlocation">Check Location</a>
-                                </td>
+                                <th style="text-align:center">Destination</th>
+                                <th style="text-align:center">Num. available Docks</th>
+                                <th style="text-align:center">Destination Location</th>
                             </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody id="arrlist">
+                            {% for arr in list_arr %}
+                                <tr>
+                                    <td style="text-align:center">{{ arr['dock_name'] }}</td>
+                                    <td style="text-align:center">
+                                        <progress value={{ arr['dock_esti'] }} max={{ arr['dock_cap'] }}></progress>
+                                        <br>{{ arr['dock_esti'] }}/{{ arr['dock_cap'] }} Docks available
+                                    </td>
+                                    <td style="text-align:center">
+                                        <a href="/gmap/{{ arr['dock_name'] }}" target='_blank' class="btnlocation">Check
+                                            Location</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
-        {% endif %}
+            {% endif %}
         </form>
 
         <script type="text/javascript">
