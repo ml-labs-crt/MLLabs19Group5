@@ -26,7 +26,7 @@ apiLatWB = "&lat=53.3494146"
 
 current_dir = os.path.dirname(os.path.realpath('__file__'))
 station_file = current_dir + '/bikes/stationData.csv'
-time_ile = current_dir + 'bikes/timeTravel.csv'
+time_file = current_dir + 'bikes/timeTravel.csv'
 model_file = current_dir + '/bikes/model-10.hdf5'
 
 max_rain = 13.2
