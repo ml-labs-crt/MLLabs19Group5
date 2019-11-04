@@ -38,7 +38,6 @@ def initbikedata():
     # graph = tf.get_default_graph()
 
 
-
 @app.route('/', methods=['POST', 'GET'])
 def index():
     # session['user_id'] = None
@@ -90,14 +89,14 @@ def addtravel():
             "arrival_station": _destination
         }
         package = api_utils.get_all_infos(inputdata)
-        dataresult = api_utils.predict_packages(package)
-        itemsorted = sorted(dataresult) #A_1, A_2, A_3...
+        dataresult = api_utils.predict_packages(package, api_utils.get_average_behaviour)
+        itemsorted = sorted(dataresult)  # A_1, A_2, A_3...
         # available depature stations
         inforlist = {
             'title': _title,
-            'departure':_departure,
-            'destination':_destination,
-            'plan_time':_datetime
+            'departure': _departure,
+            'destination': _destination,
+            'plan_time': _datetime
         }
         for tmp in itemsorted:
             dict_depar = dataresult[tmp]
@@ -122,6 +121,7 @@ def addtravel():
     else:
         return render_template('addtravel.html')
 
+
 @app.route('/deletetravel/<string:travel_id>', methods=['POST', 'GET'])
 def deletetask(travel_id):
     if request.method == 'GET':
@@ -137,16 +137,18 @@ def deletetask(travel_id):
             return redirect('/travellist')
     return redirect('/travellist')
 
+
 @app.route('/gmap/<string:bikestation>', methods=['POST', 'GET'])
 def gmap(bikestation):
-    #read csv file
+    # read csv file
     with open('./bikes/stationlocation.csv', newline='') as csvlocaiton:
         reader = csv.DictReader(csvlocaiton)
         for row in reader:
-            if(row['Station'] == bikestation):
-                bikestation = [row['Latitude'], row['Longitude'], row['Station'] ]
+            if (row['Station'] == bikestation):
+                bikestation = [row['Latitude'], row['Longitude'], row['Station']]
                 break
-    return render_template('gmap.html',bikestation=bikestation)
+    return render_template('gmap.html', bikestation=bikestation)
+
 
 # @app.route('/renewtravel/<string:travel_title>/<string:travel_depart>/<string:travel_dest>', methods=['POST', 'GET'])
 # def renewtravel(travel_title, travel_depart, travel_dest):
@@ -226,7 +228,8 @@ def saveplan(inforlist):
         conn.commit()
         cursor.close()
 
-@app.route('/travellist', methods=['POST','GET'])
+
+@app.route('/travellist', methods=['POST', 'GET'])
 def travellist():
     if request.method == "GET":
         if (session.get('user_id') is None):
@@ -244,6 +247,7 @@ def travellist():
             cur.close()
             return render_template('travellist.html', travel_result=travel_result)
     return redirect(url_for('index'))
+
 
 @app.route('/signin', methods=['POST'])  # login
 def signin():
@@ -268,6 +272,7 @@ def signin():
             return render_template("signup.html")
     return redirect('/')
 
+
 @app.route('/signup', methods=['POST', 'GET'])  # create user
 def signup():
     # read the post value from UI
@@ -289,6 +294,7 @@ def signup():
                 conn.close()
             return redirect('/')
     return render_template('signup.html')
+
 
 if __name__ == "__main__":
     mysess = Session()
